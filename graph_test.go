@@ -1,10 +1,11 @@
 package main
 
 import (
-	"testing"
-	"github.com/pavelmemory/go-aid/graph"
 	"bytes"
 	"fmt"
+	"testing"
+
+	"github.com/pavelmemory/mgraph/graph"
 )
 
 func TestGraph(t *testing.T) {
@@ -178,7 +179,7 @@ func TestGraph_GroupOutcoming(t *testing.T) {
 	var odd int
 	var groups int
 	err := v.GroupOutcomingBy(func(edge *graph.Edge) []byte {
-		if edge.Vertex().Data().(int) % 2 == 0 {
+		if edge.Vertex().Data().(int)%2 == 0 {
 			even++
 			return []byte{0}
 		}
@@ -224,7 +225,7 @@ func TestGraph_Group(t *testing.T) {
 		odd := 1
 		var groups int
 		err := v.GroupBy(func(edge *graph.Edge) []byte {
-			if edge.Vertex().Data().(int) % 2 == 0 {
+			if edge.Vertex().Data().(int)%2 == 0 {
 				return []byte{0}
 			}
 			return []byte{1}
@@ -256,7 +257,7 @@ func TestGraph_Group(t *testing.T) {
 
 	t.Run("GroupedBy", func(t *testing.T) {
 		groups := v.GroupedBy(func(edge *graph.Edge) []byte {
-			if edge.Vertex().Data().(int) % 2 == 0 {
+			if edge.Vertex().Data().(int)%2 == 0 {
 				return []byte{0}
 			}
 			return []byte{1}
@@ -281,12 +282,12 @@ func TestGraph_Group(t *testing.T) {
 
 func TestGraph_GroupGroup(t *testing.T) {
 	type Simulation struct {
-		PK string
+		PK       string
 		Baseline bool
 	}
 
 	type Product struct {
-		ID int
+		ID   int
 		Code string
 	}
 
@@ -295,16 +296,15 @@ func TestGraph_GroupGroup(t *testing.T) {
 	}
 
 	type Metric struct {
-		Id string
+		Id    string
 		Value float64
 	}
 
-	const(
+	const (
 		simulation = "simulation"
-		metric = "metric"
-		product = "product"
-		brand = "brand"
-		attribute = "attribute"
+		metric     = "metric"
+		product    = "product"
+		brand      = "brand"
 	)
 	opportunity := graph.VertexWith(nil)
 	baseline := graph.VertexWith(&Simulation{PK: "1", Baseline: true})
@@ -312,24 +312,24 @@ func TestGraph_GroupGroup(t *testing.T) {
 	opportunity.EdgeToWith(baseline, simulation)
 	opportunity.EdgeToWith(working, simulation)
 
-	brandA := graph.VertexWith(&Attribute{Label:"A"})
-	brandB := graph.VertexWith(&Attribute{Label:"B"})
+	brandA := graph.VertexWith(&Attribute{Label: "A"})
+	brandB := graph.VertexWith(&Attribute{Label: "B"})
 
 	prod1 := graph.VertexWith(&Product{ID: 10, Code: "Coke"}).
 		EdgeToWith(brandA, brand).
-		EdgeToWith(graph.VertexWith(&Metric{Id:"units", Value:10.0}), metric)
+		EdgeToWith(graph.VertexWith(&Metric{Id: "units", Value: 10.0}), metric)
 
 	prod2 := graph.VertexWith(&Product{ID: 11, Code: "Pepsi"}).
 		EdgeToWith(brandA, brand).
-		EdgeToWith(graph.VertexWith(&Metric{Id:"units", Value:1.0}), metric)
+		EdgeToWith(graph.VertexWith(&Metric{Id: "units", Value: 1.0}), metric)
 
 	prod3 := graph.VertexWith(&Product{ID: 11, Code: "Cherry Juice"}).
 		EdgeToWith(brandB, brand).
-		EdgeToWith(graph.VertexWith(&Metric{Id:"units", Value:2.0}), metric)
+		EdgeToWith(graph.VertexWith(&Metric{Id: "units", Value: 2.0}), metric)
 
 	prod4 := graph.VertexWith(&Product{ID: 11, Code: "Lemonnello"}).
 		EdgeToWith(brandB, brand).
-		EdgeToWith(graph.VertexWith(&Metric{Id:"units", Value:4.0}), metric)
+		EdgeToWith(graph.VertexWith(&Metric{Id: "units", Value: 4.0}), metric)
 
 	baseline.EdgeToWith(prod1, product)
 	baseline.EdgeToWith(prod2, product)
@@ -344,12 +344,12 @@ func TestGraph_GroupGroup(t *testing.T) {
 		VertexesSet().
 		OutcomingWhich(graph.EdgeAttributeEqualsTo(product)).
 		VertexesSet().
-		GroupedBy(func(vtx *graph.Vertex) []byte{
-		for _, vtx := range vtx.OutcomingWhich(graph.EdgeAttributeEqualsTo(brand)).Vertexes() {
-			return []byte(vtx.Data().(*Attribute).Label)
-		}
-		return nil
-	})
+		GroupedBy(func(vtx *graph.Vertex) []byte {
+			for _, vtx := range vtx.OutcomingWhich(graph.EdgeAttributeEqualsTo(brand)).Vertexes() {
+				return []byte(vtx.Data().(*Attribute).Label)
+			}
+			return nil
+		})
 
 	for _, perGroupProductVertexes := range groupedProductVertexes {
 		fmt.Println(string(perGroupProductVertexes.GroupKey))
@@ -363,7 +363,7 @@ func TestGraph_GroupGroup(t *testing.T) {
 		OutcomingWhich(graph.EdgeAttributeEqualsTo(simulation)).
 		VertexesSet().
 		OutcomingWhich(graph.EdgeAttributeEqualsTo(product)).
-		GroupedBy(func(edge *graph.Edge) []byte{
+		GroupedBy(func(edge *graph.Edge) []byte {
 			return []byte(edge.Vertex().Data().(*Product).Code)
 		})
 	for _, groupedProductEdge := range groupedProductEdges {
@@ -400,18 +400,123 @@ func TestGraph_GroupGroup(t *testing.T) {
 			GoOverEdge(graph.EdgeAttributeEqualsTo(product)).
 			GoOverEdge(graph.EdgeAttributeEqualsTo(metric)).
 			GroupVertexesWith(func(vtx *graph.Vertex) []byte {
-			return vtx.GroupVertexes(
-				graph.GoOverEdge(graph.EdgeAttributeEqualsTo(metric)).
-				GoOverEdge(graph.EdgeAttributeEqualsTo(brand)).
-				GroupVertexesWith(func(vtx *graph.Vertex) []byte{
-					return []byte(vtx.Data().(*Attribute).Label)
-				}))[0].GroupKey
-		}))
+				return vtx.GroupVertexes(
+					graph.GoOverEdge(graph.EdgeAttributeEqualsTo(metric)).
+						GoOverEdge(graph.EdgeAttributeEqualsTo(brand)).
+						GroupVertexesWith(func(vtx *graph.Vertex) []byte {
+							return []byte(vtx.Data().(*Attribute).Label)
+						}))[0].GroupKey
+			}))
 
-	for _, groupedMetricVertexeByBrand := range groupedMetricVertexesByBrand {
-		fmt.Println("Metrics group:", string(groupedMetricVertexeByBrand.GroupKey))
-		for _, vtx := range groupedMetricVertexeByBrand.Vertexes {
+	for _, groupedMetricVertexByBrand := range groupedMetricVertexesByBrand {
+		fmt.Println("Metrics group:", string(groupedMetricVertexByBrand.GroupKey))
+		for _, vtx := range groupedMetricVertexByBrand.Vertexes {
 			fmt.Println("Group item:", *(vtx.Data().(*Metric)))
 		}
+	}
+}
+
+func TestExistVertexes(t *testing.T) {
+	type Product struct {
+		Brand, Vendor string
+	}
+
+	type Metric struct {
+		Name  string
+		Value float64
+	}
+
+	type Market struct {
+		Id string
+	}
+
+	type Period struct {
+		Id string
+	}
+
+	const (
+		attributeProduct = "product"
+		attributeMetric  = "metric"
+		attributeMarket  = "market"
+		attributePeriod  = "period"
+	)
+
+	metricDist02 := graph.VertexWith(Metric{"distribution", 0.2})
+	metricDist03 := graph.VertexWith(Metric{"distribution", 0.3})
+
+	marketChild := graph.
+		VertexWith(Market{"child"}).
+		EdgeToWith(metricDist02, attributeMetric).
+		EdgeToWith(graph.VertexWith(Period{"2000"}), attributePeriod)
+
+	marketParent := graph.
+		VertexWith(Market{Id: "parent"}).
+		EdgeToWith(metricDist03, attributeMetric).
+		EdgeToWith(graph.VertexWith(Period{"2001"}), attributePeriod)
+
+	productCoke := graph.
+		VertexWith(Product{Brand: "Coca-Cola", Vendor: "Nestle"}).
+		EdgeToWith(marketParent, attributeMarket)
+
+	productPepsi := graph.
+		VertexWith(Product{Brand: "PepsiCo", Vendor: "Nestle"}).
+		EdgeToWith(marketChild, attributeMarket).
+		EdgeToWith(marketParent, attributeMarket)
+
+	assortment := graph.
+		VertexWith("Assortment of drinks").
+		EdgeToWith(productCoke, attributeProduct).
+		EdgeToWith(productPepsi, attributeProduct)
+
+	periodIdIs := func(id string) func(vtx *graph.Vertex) bool {
+		return func(vtx *graph.Vertex) bool {
+			period, ok := vtx.Data().(Period)
+			return ok && period.Id == id
+		}
+	}
+
+	gg := assortment.GroupVertexes(graph.
+		GoOverEdge(graph.EdgeAttributeEqualsTo(attributeProduct)).
+		GroupVertexesWith(
+			func(vtx *graph.Vertex) []byte {
+				if vtx.ExistVertexes(graph.
+					GoOverEdge(graph.EdgeAttributeEqualsTo(attributeMarket)).
+					GoOverEdge(graph.EdgeAttributeEqualsTo(attributePeriod)).
+					ExistVertexesWith(periodIdIs("2000")),
+				) {
+					return []byte("with 2000")
+				}
+				return []byte("without 2000")
+			}))
+
+	if len(gg) != 2 {
+		t.Error("incorrect number of groups", len(gg))
+		return
+	}
+
+	check := func(v1 graph.GroupedVertexes, v2 graph.GroupedVertexes) {
+		if len(v1.Vertexes) != 1 {
+			t.Errorf("incorrect number of vertexes '%d'", len(v1.Vertexes))
+			return
+		}
+		if v1.Vertexes[0].Data() != productPepsi.Data() {
+			t.Errorf("unexpected data in vertex %+v", v1.Vertexes[0].Data())
+		}
+		if len(v2.Vertexes) != 1 {
+			t.Errorf("incorrect number of vertexes '%d'", len(v2.Vertexes))
+			return
+		}
+		if v2.Vertexes[0].Data() != productCoke.Data() {
+			t.Errorf("unexpected data in vertex %+v", v2.Vertexes[0].Data())
+		}
+	}
+
+	switch {
+	case bytes.Equal(gg[0].GroupKey, []byte("with 2000")):
+		check(gg[0], gg[1])
+	case bytes.Equal(gg[0].GroupKey, []byte("without 2000")):
+		check(gg[1], gg[0])
+	default:
+		t.Errorf("unexpected group key '%s'", string(gg[0].GroupKey))
 	}
 }

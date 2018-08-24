@@ -16,4 +16,3 @@ func (vtx *Vertex) TraverseWith(strategy TraversingStrategy, action Action) (err
 	}
 	return
 }
-

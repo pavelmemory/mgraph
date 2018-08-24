@@ -14,7 +14,7 @@ func (sd SearchAlgorithm) StartAt(vtx *Vertex) GraphIterator {
 	switch sd {
 	case DFS:
 		dfs := &dfSearcherWrapper{}
-		dfs.searcher = &dfSearcher{vtx:vtx, vtxs:vtx.Outcoming().Vertexes(), wrapper: dfs}
+		dfs.searcher = &dfSearcher{vtx: vtx, vtxs: vtx.Outcoming().Vertexes(), wrapper: dfs}
 		return dfs
 	case BFS:
 		return &bfSearcher{check: []*Vertex{vtx}}
@@ -22,4 +22,3 @@ func (sd SearchAlgorithm) StartAt(vtx *Vertex) GraphIterator {
 		return badSearcher{}
 	}
 }
-

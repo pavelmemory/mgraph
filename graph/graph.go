@@ -1,15 +1,15 @@
 package graph
 
 type (
-	DataPredicate  func(d interface{}) bool
-	VertexPredicate   func(vtx *Vertex) bool
-	EdgePredicate   func(edge *Edge) bool
-	Action      func(vtx *Vertex) error
-	GroupEdgesAction func(groupKey []byte, edges []*Edge) error
+	DataPredicate       func(d interface{}) bool
+	VertexPredicate     func(vtx *Vertex) bool
+	EdgePredicate       func(edge *Edge) bool
+	Action              func(vtx *Vertex) error
+	GroupEdgesAction    func(groupKey []byte, edges []*Edge) error
 	GroupVertexesAction func(groupKey []byte, vtxs []*Vertex) error
-	EdgesGrouper     func(edge *Edge) []byte
+	EdgesGrouper        func(edge *Edge) []byte
 	VertexesGrouper     func(vtx *Vertex) []byte
-	VertexSelector func (vtx *Vertex) bool
+	VertexSelector      func(vtx *Vertex) bool
 
 	GroupedEdges struct {
 		GroupKey []byte
@@ -18,7 +18,7 @@ type (
 
 	GroupedVertexes struct {
 		GroupKey []byte
-		Vertexes    []*Vertex
+		Vertexes []*Vertex
 	}
 )
 
@@ -26,7 +26,7 @@ func GoOverEdge(edgeSelector EdgePredicate) PathOverEdge {
 	return PathOverEdge{selectors: []EdgePredicate{edgeSelector}}
 }
 
-type PathOverEdge struct{
+type PathOverEdge struct {
 	selectors []EdgePredicate
 }
 
@@ -39,9 +39,18 @@ func (poe PathOverEdge) GroupVertexesWith(vtxGrouper VertexesGrouper) CompleteGr
 	return CompleteGrouperOverEdgesPath{pathOverEdge: poe, vtxGrouper: vtxGrouper}
 }
 
+func (poe PathOverEdge) ExistVertexesWith(vtxSelector VertexSelector) CompleteSelectorOverEdgesPath {
+	return CompleteSelectorOverEdgesPath{pathOverEdge: poe, vtxSelector: vtxSelector}
+}
+
+type CompleteSelectorOverEdgesPath struct {
+	pathOverEdge PathOverEdge
+	vtxSelector VertexSelector
+}
+
 type CompleteGrouperOverEdgesPath struct {
 	pathOverEdge PathOverEdge
-	vtxGrouper VertexesGrouper
+	vtxGrouper   VertexesGrouper
 }
 
 func EdgeAttributeEqualsTo(data interface{}) EdgePredicate {
@@ -223,6 +232,27 @@ func (vtx *Vertex) GroupVertexes(pathGrouper CompleteGrouperOverEdgesPath) []Gro
 	return currentVtxs.GroupedBy(pathGrouper.vtxGrouper)
 }
 
+func (vtx *Vertex) ExistVertexes(pathSelector CompleteSelectorOverEdgesPath) bool {
+	// TODO: get rid of cycling over closed graph paths
+	currentVtxs := NewVertexSet(vtx)
+	for _, pathSelector := range pathSelector.pathOverEdge.selectors {
+		nextVtxs := NewVertexSet()
+		for currentVtxIterator := currentVtxs.Iterator(); currentVtxIterator.HasNext(); {
+			currentVtx := currentVtxIterator.Next()
+			for _, iterator := range []EdgeSetIterator{currentVtx.incoming.Iterator(), currentVtx.outcoming.Iterator()} {
+				for iterator.HasNext() {
+					edge := iterator.Next()
+					if pathSelector(edge) {
+						nextVtxs.put(edge.vertex)
+					}
+				}
+			}
+		}
+		currentVtxs = nextVtxs
+	}
+	return currentVtxs.ExistsBy(pathSelector.vtxSelector)
+}
+
 func applyEdgeGroupAction(grouped map[string][]*Edge, action GroupEdgesAction) error {
 	for gkey, edges := range grouped {
 		if err := action([]byte(gkey), edges); err != nil {
@@ -233,7 +263,7 @@ func applyEdgeGroupAction(grouped map[string][]*Edge, action GroupEdgesAction) e
 }
 
 type VertexSet struct {
-	set map[*Vertex]int
+	set   map[*Vertex]int
 	order map[int]*Vertex
 }
 
@@ -279,6 +309,16 @@ func (vs VertexSet) GroupedBy(defineGroup VertexesGrouper) (groups []GroupedVert
 		return nil
 	})
 	return
+}
+
+func (vs VertexSet) ExistsBy(vtxSelector VertexSelector) bool {
+	for iterator := vs.Iterator(); iterator.HasNext(); {
+		vtx := iterator.Next()
+		if vtxSelector(vtx) {
+			return true
+		}
+	}
+	return false
 }
 
 func (vs VertexSet) GroupBy(defineGroup VertexesGrouper, action GroupVertexesAction) error {

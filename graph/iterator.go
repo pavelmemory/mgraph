@@ -29,7 +29,7 @@ func (dfs *dfSearcher) Next() *Vertex {
 	if dfs.index < len(dfs.vtxs) {
 		vtx := dfs.vtxs[dfs.index]
 		dfs.index++
-		dfs.wrapper.searcher = &dfSearcher{vtx:vtx, previous:dfs, vtxs:vtx.Outcoming().Vertexes(), wrapper: dfs.wrapper}
+		dfs.wrapper.searcher = &dfSearcher{vtx: vtx, previous: dfs, vtxs: vtx.Outcoming().Vertexes(), wrapper: dfs.wrapper}
 		return dfs.wrapper.Next()
 	} else {
 		vtx := dfs.vtx
@@ -64,7 +64,7 @@ func (bfs *bfSearcher) HasNext() bool {
 }
 
 // Stub implementation used when invalid value of `SearchDirection` type was used
-type badSearcher struct {}
+type badSearcher struct{}
 
 func (badSearcher) Next() *Vertex {
 	return nil
@@ -73,4 +73,3 @@ func (badSearcher) Next() *Vertex {
 func (badSearcher) HasNext() bool {
 	return false
 }
-

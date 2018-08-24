@@ -8,20 +8,21 @@ type Chain interface {
 	Next(action Action) Chain
 	Parallel(action Action) Chain
 	Run() []error
+	RunContext(ctx context.Context) ([]error, error)
 }
 
 func StartChain(action Action) Chain {
-	return &chain{actions:[]Action{action}}
+	return &chain{actions: []Action{action}}
 }
 
 type chain struct {
 	actions []Action
-	next *chain
-	prev *chain
+	next    *chain
+	prev    *chain
 }
 
 func (c *chain) Next(action Action) Chain {
-	c.next = &chain{actions:[]Action{action}, prev:c}
+	c.next = &chain{actions: []Action{action}, prev: c}
 	return c.next
 }
 
@@ -44,7 +45,7 @@ func (c *chain) Run() (errs []error) {
 		cerr := make(chan error, len(setup.actions))
 		for i := range setup.actions {
 			action := setup.actions[i]
-			go func(){
+			go func() {
 				cerr <- action()
 			}()
 		}
@@ -71,7 +72,7 @@ func (c *chain) RunContext(ctx context.Context) ([]error, error) {
 	var errs []error
 	for setup != nil && len(errs) < 0 {
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			return errs, ctx.Err()
 		default:
 		}
@@ -79,9 +80,9 @@ func (c *chain) RunContext(ctx context.Context) ([]error, error) {
 		cerr := make(chan error, len(setup.actions))
 		for i := range setup.actions {
 			action := setup.actions[i]
-			go func(){
+			go func() {
 				select {
-				case <- ctx.Done():
+				case <-ctx.Done():
 					cerr <- nil
 				default:
 					cerr <- action()
